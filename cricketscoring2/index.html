@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GullyScore Cricket</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="scoreboard" aria-label="Current score">
+        <div class="match-strip">
+          <div>
+            <p class="eyebrow">Friendly Cricket</p>
+            <h1>GullyScore</h1>
+          </div>
+          <button class="icon-button" id="resetMatch" title="Reset match" aria-label="Reset match">
+            <span aria-hidden="true">&#8635;</span>
+          </button>
+        </div>
+
+        <div class="score-grid">
+          <article class="score-panel main-score">
+            <div class="team-line">
+              <input id="battingTeam" aria-label="Batting team" value="Team A" />
+              <span id="inningsBadge">1st innings</span>
+            </div>
+            <div class="score-number"><span id="runs">0</span>/<span id="wickets">0</span></div>
+            <div class="meta-line">
+              <span id="overs">0.0</span> overs
+              <span>RR <strong id="runRate">0.00</strong></span>
+              <span id="targetText">Set a target</span>
+            </div>
+          </article>
+
+          <article class="score-panel">
+            <label for="oversLimit">Overs</label>
+            <div class="stepper">
+              <button class="small-button" data-step-overs="-1" aria-label="Reduce overs">&minus;</button>
+              <input id="oversLimit" type="number" min="1" max="50" value="6" />
+              <button class="small-button" data-step-overs="1" aria-label="Increase overs">+</button>
+            </div>
+          </article>
+
+          <article class="score-panel">
+            <label for="playersLimit">Players</label>
+            <div class="stepper">
+              <button class="small-button" data-step-players="-1" aria-label="Reduce players">&minus;</button>
+              <input id="playersLimit" type="number" min="2" max="11" value="8" />
+              <button class="small-button" data-step-players="1" aria-label="Increase players">+</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="setup-panel" id="setupPanel">
+        <div class="section-head">
+          <div>
+            <h2>Match Setup</h2>
+            <span>Add names, choose the first batters and bowler, then start scoring.</span>
+          </div>
+          <button id="startFirstInnings">Start 1st innings</button>
+        </div>
+        <div class="setup-grid">
+          <label>
+            Team A
+            <input id="teamAName" value="Team A" />
+          </label>
+          <label>
+            Team B
+            <input id="teamBName" value="Team B" />
+          </label>
+          <label>
+            Bat first
+            <select id="batFirstTeam"></select>
+          </label>
+        </div>
+        <div class="setup-grid players-grid">
+          <label>
+            Team A players
+            <textarea id="teamAPlayers" rows="5">Batter 1
+Batter 2
+Batter 3
+Batter 4
+Batter 5
+Batter 6
+Batter 7
+Batter 8</textarea>
+          </label>
+          <label>
+            Team B players
+            <textarea id="teamBPlayers" rows="5">Bowler 1
+Bowler 2
+Bowler 3
+Bowler 4
+Bowler 5
+Bowler 6
+Bowler 7
+Bowler 8</textarea>
+          </label>
+          <div class="setup-selects">
+            <label>
+              Striker
+              <select id="setupStriker"></select>
+            </label>
+            <label>
+              Non-striker
+              <select id="setupNonStriker"></select>
+            </label>
+            <label>
+              Opening bowler
+              <select id="setupBowler"></select>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="batters" aria-label="Batters">
+        <article class="batter active" id="strikerCard">
+          <p>Striker</p>
+          <input id="strikerName" aria-label="Striker name" value="Batter 1" />
+          <strong id="strikerRuns">0</strong>
+          <span id="strikerBalls">0 balls</span>
+        </article>
+        <button class="swap-button" id="swapStrike" title="Swap strike" aria-label="Swap strike">
+          <span aria-hidden="true">&#8644;</span>
+        </button>
+        <article class="batter" id="nonStrikerCard">
+          <p>Non-striker</p>
+          <input id="nonStrikerName" aria-label="Non-striker name" value="Batter 2" />
+          <strong id="nonStrikerRuns">0</strong>
+          <span id="nonStrikerBalls">0 balls</span>
+        </article>
+        <article class="batter bowler-card" id="bowlerCard">
+          <p>Bowler</p>
+          <input id="bowlerName" aria-label="Bowler name" value="Bowler 1" />
+          <strong id="bowlerBalls">0.0</strong>
+          <span>current over</span>
+        </article>
+      </section>
+
+      <section class="controls" aria-label="Scoring controls">
+        <div class="control-group">
+          <h2>Runs</h2>
+          <div class="button-grid runs-grid">
+            <button data-score="0">0</button>
+            <button data-score="1">1</button>
+            <button data-score="2">2</button>
+            <button data-score="3">3</button>
+            <button data-score="4">4</button>
+            <button data-score="6">6</button>
+          </div>
+          <p class="mode-hint" id="scoreModeHint">Normal scoring</p>
+        </div>
+
+        <div class="control-group">
+          <h2>Extras</h2>
+          <div class="button-grid">
+            <button data-extra="wide">Wide</button>
+            <button data-extra="noBall">No ball</button>
+            <button data-extra="bye">Bye</button>
+            <button data-extra="legBye">Leg bye</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h2>Actions</h2>
+          <div class="button-grid">
+            <button id="wicketButton" class="danger">Wicket</button>
+            <button id="retireButton">Retire</button>
+            <button id="undoButton">Undo</button>
+            <button id="endInningsButton">End innings</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="details">
+        <article>
+          <div class="section-head">
+            <h2>This Over</h2>
+            <span id="ballsLeft">6 balls left</span>
+          </div>
+          <div class="over-pills" id="currentOver"></div>
+        </article>
+
+        <article>
+          <div class="section-head">
+            <h2>Scorebook</h2>
+            <span id="inningsSummary">No balls yet</span>
+          </div>
+          <ol class="log" id="scoreLog"></ol>
+        </article>
+      </section>
+    </main>
+
+    <dialog id="nameDialog">
+      <form method="dialog">
+        <h2 id="dialogTitle">New batter</h2>
+        <label for="playerSelect" id="dialogLabel">Player</label>
+        <select id="playerSelect"></select>
+        <input id="newBatterName" value="Next batter" hidden />
+        <menu>
+          <button value="cancel">Cancel</button>
+          <button id="confirmBatter" value="default">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
