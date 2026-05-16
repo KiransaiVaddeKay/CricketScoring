@@ -147,6 +147,21 @@ function scoreExtra(type) {
   render();
 }
 
+function scoreNoBallRuns(runs) {
+  if (isInningsOver() || checkChaseComplete()) return;
+  pushHistory();
+
+  const batter = currentBatter();
+  const totalRuns = runs + 1;
+  state.runs += totalRuns;
+  batter.runs += runs;
+  addBall(`Nb+${runs}`, { legal: false });
+  addLog(`${formatOvers()} No ball + ${runs} to ${batter.name}`, `Nb+${runs}`);
+
+  if (runs % 2 === 1) swapStrike();
+  render();
+}
+
 function wicket() {
   if (isInningsOver() || checkChaseComplete()) return;
   pushHistory();
@@ -338,6 +353,10 @@ document.querySelectorAll("[data-score]").forEach((button) => {
 
 document.querySelectorAll("[data-extra]").forEach((button) => {
   button.addEventListener("click", () => scoreExtra(button.dataset.extra));
+});
+
+document.querySelectorAll("[data-no-ball-runs]").forEach((button) => {
+  button.addEventListener("click", () => scoreNoBallRuns(Number(button.dataset.noBallRuns)));
 });
 
 document.querySelectorAll("[data-step-overs]").forEach((button) => {
