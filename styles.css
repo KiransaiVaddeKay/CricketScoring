@@ -305,6 +305,18 @@ dialog input {
   font-size: 1.35rem;
 }
 
+.mode-hint {
+  margin: 10px 0 0;
+  min-height: 20px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.mode-hint.active {
+  color: var(--warn);
+}
+
 .button-grid button:hover,
 .small-button:hover,
 .swap-button:hover {

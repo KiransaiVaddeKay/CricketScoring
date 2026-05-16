@@ -38,10 +38,12 @@ const el = {
   inningsSummary: document.querySelector("#inningsSummary"),
   nameDialog: document.querySelector("#nameDialog"),
   newBatterName: document.querySelector("#newBatterName"),
+  scoreModeHint: document.querySelector("#scoreModeHint"),
 };
 
 let pendingWicket = false;
 let pendingOutIndex = null;
+let scoreMode = "normal";
 
 function cloneState() {
   const { history, ...matchState } = state;
@@ -108,6 +110,10 @@ function checkChaseComplete() {
 }
 
 function scoreRuns(runs) {
+  if (scoreMode === "noBall") {
+    scoreNoBallRuns(runs);
+    return;
+  }
   if (isInningsOver() || checkChaseComplete()) return;
   pushHistory();
 
@@ -125,6 +131,15 @@ function scoreRuns(runs) {
 }
 
 function scoreExtra(type) {
+  if (type === "noBall") {
+    if (scoreMode === "noBall") {
+      scoreNoBallRuns(0);
+    } else {
+      setScoreMode("noBall");
+    }
+    return;
+  }
+
   if (isInningsOver() || checkChaseComplete()) return;
   pushHistory();
 
@@ -159,7 +174,16 @@ function scoreNoBallRuns(runs) {
   addLog(`${formatOvers()} No ball + ${runs} to ${batter.name}`, `Nb+${runs}`);
 
   if (runs % 2 === 1) swapStrike();
+  setScoreMode("normal");
   render();
+}
+
+function setScoreMode(mode) {
+  scoreMode = mode;
+  if (!el.scoreModeHint) return;
+  const isNoBall = mode === "noBall";
+  el.scoreModeHint.textContent = isNoBall ? "No ball selected: tap 0/1/2/3/4/6" : "Normal scoring";
+  el.scoreModeHint.classList.toggle("active", isNoBall);
 }
 
 function wicket() {
@@ -241,6 +265,7 @@ function endInnings() {
 function resetMatch() {
   const overs = el.oversLimit.value;
   const players = el.playersLimit.value;
+  setScoreMode("normal");
   Object.assign(state, {
     innings: 1,
     runs: 0,
@@ -269,6 +294,7 @@ function undo() {
   if (!snapshot) return;
   pendingWicket = false;
   pendingOutIndex = null;
+  setScoreMode("normal");
   restoreState(snapshot);
   render();
 }
@@ -353,10 +379,6 @@ document.querySelectorAll("[data-score]").forEach((button) => {
 
 document.querySelectorAll("[data-extra]").forEach((button) => {
   button.addEventListener("click", () => scoreExtra(button.dataset.extra));
-});
-
-document.querySelectorAll("[data-no-ball-runs]").forEach((button) => {
-  button.addEventListener("click", () => scoreNoBallRuns(Number(button.dataset.noBallRuns)));
 });
 
 document.querySelectorAll("[data-step-overs]").forEach((button) => {
