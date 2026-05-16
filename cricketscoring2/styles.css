@@ -247,6 +247,13 @@ dialog select {
   font-weight: 900;
 }
 
+.chase-line {
+  margin: 8px 0 0;
+  min-height: 20px;
+  color: var(--grass);
+  font-weight: 900;
+}
+
 .meta-line {
   flex-wrap: wrap;
   gap: 12px;
@@ -403,6 +410,78 @@ dialog select {
   min-height: 152px;
 }
 
+.scorecard-section {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 14px;
+}
+
+.scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.scorecard-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfa;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.scorecard-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.scorecard-card h3,
+.scorecard-card h4 {
+  margin: 0;
+}
+
+.scorecard-card h4 {
+  margin-top: 12px;
+  margin-bottom: 6px;
+  color: var(--muted);
+}
+
+.scorecard-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.scorecard-card table {
+  width: 100%;
+  min-width: 430px;
+  border-collapse: collapse;
+}
+
+.scorecard-card th,
+.scorecard-card td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 7px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.scorecard-card th {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.scorecard-card td {
+  font-weight: 800;
+}
+
 .section-head {
   justify-content: space-between;
   gap: 10px;
@@ -510,7 +589,8 @@ dialog button[value="cancel"] {
   .setup-grid,
   .players-grid,
   .controls,
-  .details {
+  .details,
+  .scorecard-grid {
     grid-template-columns: 1fr;
   }
 

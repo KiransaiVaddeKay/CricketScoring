@@ -9,12 +9,14 @@ const state = {
   balls: [],
   log: [],
   history: [],
+  inningsCards: [],
   teams: [
     { name: "Team A", players: [] },
     { name: "Team B", players: [] },
   ],
   battingTeamIndex: 0,
   bowlingTeamIndex: 1,
+  bowlingTeamPlayersAtInningsStart: [],
   batters: [
     { name: "Batter 1", runs: 0, balls: 0, out: false },
     { name: "Batter 2", runs: 0, balls: 0, out: false },
@@ -44,6 +46,7 @@ const el = {
   overs: document.querySelector("#overs"),
   runRate: document.querySelector("#runRate"),
   targetText: document.querySelector("#targetText"),
+  chaseLine: document.querySelector("#chaseLine"),
   oversLimit: document.querySelector("#oversLimit"),
   playersLimit: document.querySelector("#playersLimit"),
   strikerName: document.querySelector("#strikerName"),
@@ -58,6 +61,7 @@ const el = {
   scoreLog: document.querySelector("#scoreLog"),
   ballsLeft: document.querySelector("#ballsLeft"),
   inningsSummary: document.querySelector("#inningsSummary"),
+  scorecardGrid: document.querySelector("#scorecardGrid"),
   nameDialog: document.querySelector("#nameDialog"),
   dialogTitle: document.querySelector("#dialogTitle"),
   dialogLabel: document.querySelector("#dialogLabel"),
@@ -175,8 +179,10 @@ function startFirstInnings() {
     balls: [],
     log: [],
     history: [],
+    inningsCards: [],
     battingTeamIndex: battingIndex,
     bowlingTeamIndex: bowlingIndex,
+    bowlingTeamPlayersAtInningsStart: [...bowling],
     batters: [
       { name: el.setupStriker.value, runs: 0, balls: 0, out: false },
       { name: el.setupNonStriker.value, runs: 0, balls: 0, out: false },
@@ -190,6 +196,32 @@ function startFirstInnings() {
   el.battingTeam.value = state.teams[state.battingTeamIndex].name;
   setScoreMode("normal");
   render();
+}
+
+function currentInningsCard() {
+  const bowlingFigures = new Map();
+  state.bowlingTeamPlayersAtInningsStart?.forEach((name) => {
+    bowlingFigures.set(name, { name, balls: 0, runs: 0, wickets: 0 });
+  });
+  state.balls.forEach((ball) => {
+    if (!bowlingFigures.has(ball.bowler)) {
+      bowlingFigures.set(ball.bowler, { name: ball.bowler, balls: 0, runs: 0, wickets: 0 });
+    }
+    const figure = bowlingFigures.get(ball.bowler);
+    if (ball.legal) figure.balls += 1;
+    figure.runs += ball.bowlerRuns || 0;
+    if (ball.wicket) figure.wickets += 1;
+  });
+  return {
+    innings: state.innings,
+    battingTeam: state.teams[state.battingTeamIndex].name,
+    bowlingTeam: state.teams[state.bowlingTeamIndex].name,
+    runs: state.runs,
+    wickets: state.wickets,
+    legalBalls: state.legalBalls,
+    batting: state.batters.map((batter) => ({ ...batter })),
+    bowling: Array.from(bowlingFigures.values()),
+  };
 }
 
 function maxWickets() {
@@ -228,6 +260,11 @@ function addBall(mark, options = {}) {
     legal: options.legal ?? true,
     wicket: Boolean(options.wicket),
     boundary: mark === "4" || mark === "6",
+    batter: currentBatter().name,
+    bowler: state.bowler,
+    batRuns: options.batRuns ?? 0,
+    teamRuns: options.teamRuns ?? options.batRuns ?? 0,
+    bowlerRuns: options.bowlerRuns ?? options.teamRuns ?? options.batRuns ?? 0,
   });
 }
 
@@ -250,6 +287,7 @@ function legalDeliveryComplete() {
 function afterDelivery() {
   if (pendingSelection) return;
   if (checkChaseComplete()) {
+    state.inningsCards[state.innings - 1] = currentInningsCard();
     state.matchComplete = true;
     addLog(`${state.teams[state.battingTeamIndex].name} completed the chase`, "End");
     return;
@@ -342,6 +380,7 @@ function startSecondInnings() {
     nonStriker: 1,
     battingTeamIndex: secondInningsSetup.battingTeamIndex,
     bowlingTeamIndex: secondInningsSetup.bowlingTeamIndex,
+    bowlingTeamPlayersAtInningsStart: [...nextBowlers],
     bowler,
     currentOverBowlerBalls: 0,
     firstInningsScore: secondInningsSetup.target - 1,
@@ -366,7 +405,7 @@ function scoreRuns(runs) {
   legalDeliveryComplete();
   batter.runs += runs;
   batter.balls += 1;
-  addBall(String(runs));
+  addBall(String(runs), { batRuns: runs, teamRuns: runs, bowlerRuns: runs });
   addLog(`${formatOvers()} ${batter.name} scored ${runs} off ${state.bowler}`, String(runs));
 
   if (runs % 2 === 1) swapStrike();
@@ -401,7 +440,12 @@ function scoreExtra(type) {
     state.legalBalls += 1;
     legalDeliveryComplete();
   }
-  addBall(labels[type].slice(0, 2), { legal });
+  addBall(labels[type].slice(0, 2), {
+    legal,
+    batRuns: 0,
+    teamRuns: 1,
+    bowlerRuns: type === "wide" || type === "noBall" ? 1 : 0,
+  });
   addLog(`${formatOvers()} ${labels[type]} +1 off ${state.bowler}`, labels[type].slice(0, 2));
 
   if (legal) {
@@ -420,7 +464,7 @@ function scoreNoBallRuns(runs) {
   const totalRuns = runs + 1;
   state.runs += totalRuns;
   batter.runs += runs;
-  addBall(`Nb+${runs}`, { legal: false });
+  addBall(`Nb+${runs}`, { legal: false, batRuns: runs, teamRuns: totalRuns, bowlerRuns: totalRuns });
   addLog(`${formatOvers()} No ball + ${runs} to ${batter.name}`, `Nb+${runs}`);
 
   if (runs % 2 === 1) swapStrike();
@@ -447,7 +491,7 @@ function wicket() {
   legalDeliveryComplete();
   batter.balls += 1;
   batter.out = true;
-  addBall("W", { wicket: true });
+  addBall("W", { wicket: true, batRuns: 0, teamRuns: 0, bowlerRuns: 0 });
   addLog(`${formatOvers()} ${batter.name} is out off ${state.bowler}`, "W");
 
   if (!isInningsOver()) {
@@ -537,8 +581,10 @@ function endInnings() {
   pushHistory();
   if (state.innings === 1) {
     const target = state.runs + 1;
+    state.inningsCards[0] = currentInningsCard();
     beginSecondInningsSelection(target);
   } else {
+    state.inningsCards[1] = currentInningsCard();
     state.matchComplete = true;
     addLog("Match ended", "End");
     setScoreMode("normal");
@@ -573,6 +619,7 @@ function resetMatch() {
     nonStriker: 1,
     bowler: "Bowler 1",
     currentOverBowlerBalls: 0,
+    bowlingTeamPlayersAtInningsStart: [],
     firstInningsScore: null,
   });
   refreshSetupSelectors();
@@ -636,6 +683,97 @@ function renderLog() {
   });
 }
 
+function table(headers, rows) {
+  const tableEl = document.createElement("table");
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  headers.forEach((header) => {
+    const th = document.createElement("th");
+    th.textContent = header;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  tableEl.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    row.forEach((cell) => {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  tableEl.appendChild(tbody);
+  return tableEl;
+}
+
+function strikeRate(runs, balls) {
+  return balls ? ((runs / balls) * 100).toFixed(1) : "0.0";
+}
+
+function economy(runs, balls) {
+  return balls ? ((runs / balls) * 6).toFixed(2) : "0.00";
+}
+
+function renderScorecards() {
+  const cards = [...state.inningsCards];
+  if (state.matchStarted && !state.matchComplete) {
+    cards[state.innings - 1] = currentInningsCard();
+  }
+
+  el.scorecardGrid.innerHTML = "";
+  const visibleCards = cards.filter(Boolean);
+  if (!visibleCards.length) {
+    const empty = document.createElement("article");
+    empty.className = "scorecard-card";
+    empty.innerHTML = "<h3>No scorecard yet</h3><p>Start scoring to see batting and bowling cards.</p>";
+    el.scorecardGrid.appendChild(empty);
+    return;
+  }
+
+  visibleCards.forEach((card) => {
+    const wrapper = document.createElement("article");
+    wrapper.className = "scorecard-card";
+    const title = document.createElement("div");
+    title.className = "scorecard-title";
+    title.innerHTML = `<h3>${card.battingTeam} ${card.runs}/${card.wickets}</h3><span>${formatOvers(card.legalBalls)} overs</span>`;
+    wrapper.appendChild(title);
+
+    const battingTitle = document.createElement("h4");
+    battingTitle.textContent = "Batting";
+    wrapper.appendChild(battingTitle);
+    wrapper.appendChild(
+      table(
+        ["Batter", "R", "B", "SR"],
+        card.batting.map((batter) => [
+          `${batter.name}${batter.out ? "" : "*"}`,
+          batter.runs,
+          batter.balls,
+          strikeRate(batter.runs, batter.balls),
+        ]),
+      ),
+    );
+
+    const bowlingTitle = document.createElement("h4");
+    bowlingTitle.textContent = `Bowling - ${card.bowlingTeam}`;
+    wrapper.appendChild(bowlingTitle);
+    wrapper.appendChild(
+      table(
+        ["Bowler", "O", "R", "W", "Econ"],
+        (card.bowling.some((bowler) => bowler.balls || bowler.runs || bowler.wickets)
+          ? card.bowling
+              .filter((bowler) => bowler.balls || bowler.runs || bowler.wickets)
+              .map((bowler) => [bowler.name, formatOvers(bowler.balls), bowler.runs, bowler.wickets, economy(bowler.runs, bowler.balls)])
+          : [["No bowling yet", "-", "-", "-", "-"]]),
+      ),
+    );
+
+    el.scorecardGrid.appendChild(wrapper);
+  });
+}
+
 function render() {
   if (!state.matchStarted) refreshSetupSelectors();
   const ballsRemaining = Math.max(0, inningsBallsLimit() - state.legalBalls);
@@ -656,12 +794,16 @@ function render() {
   el.runRate.textContent = rr.toFixed(2);
   if (!state.target) {
     el.targetText.textContent = state.matchStarted && isInningsOver() ? "Start 2nd innings" : "Set a target";
+    el.chaseLine.textContent = "";
   } else if (state.runs >= state.target) {
     el.targetText.textContent = "Chase complete";
+    el.chaseLine.textContent = `${state.teams[state.battingTeamIndex].name} won with ${ballsRemaining} balls left`;
   } else if (isInningsOver()) {
     el.targetText.textContent = `${state.target - state.runs} short`;
+    el.chaseLine.textContent = `Target ${state.target} from ${inningsBallsLimit()} balls`;
   } else {
     el.targetText.textContent = `${state.target - state.runs} needed from ${ballsRemaining}`;
+    el.chaseLine.textContent = `${state.target - state.runs} required in ${ballsRemaining} balls`;
   }
   el.strikerName.value = striker.name;
   el.nonStrikerName.value = nonStriker.name;
@@ -677,6 +819,7 @@ function render() {
 
   renderOver();
   renderLog();
+  renderScorecards();
 
   document.querySelectorAll("[data-score], [data-extra], #wicketButton, #retireButton, #swapStrike").forEach((control) => {
     control.disabled = scoringDisabled;
